@@ -4,26 +4,13 @@ This README would normally document whatever steps are necessary to get your app
 
 ### What is this repository for? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* produce a dataset of all mappings tried with the corresponding mapping entropies, embedded in the form of a graph
+* include all the analysis
+* a bit of literature on ML for graphs
 
-### How do I get set up? ###
+## folders
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+* dataset
+	- raw_data
+	- cleaned_data
+* literature
