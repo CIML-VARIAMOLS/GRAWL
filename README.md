@@ -14,3 +14,11 @@ This README would normally document whatever steps are necessary to get your app
 	- raw_data
 	- cleaned_data
 * literature
+* dgn_exploration
+
+This folder contains the trained neural network and the python script to perform Wang Landau exploration in the space of available mappings.
+
+In order to use them:
+- setup a conda environment HOW
+- run the script: the two files "parameters.dat" are already present in the folder and should be the first and unique argument given to the script:
+python3 GRAWL.py parameters.dat
