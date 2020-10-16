@@ -407,10 +407,8 @@ ibin=int(smap/delx)
 #
 ##temporary mapping employed for the move
 ##mapping_temp=numpy.zeros(shape=(heavy_nr), dtype=int)
-#
+# creating a temporary mapping by cloning torch mapping
 mapping_temp = mapping.clone()
-mapping_temp[3] = 42
-print(mapping, mapping_temp)
 #for i in range(heavy_nr):
 #    mapping_temp[i]=mapping[i]
 #
