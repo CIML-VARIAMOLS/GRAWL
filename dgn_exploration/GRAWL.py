@@ -3,6 +3,7 @@
 import json
 import random
 from pathlib import Path
+import pickle
 
 import torch
 from torch import nn
@@ -20,8 +21,8 @@ from torch_geometric.nn.inits import reset
 import numpy
 import datetime
 import math
-import random
 import os
+import sys
 
 def system_parameters_setup(parfile):
     # receives the name of the parameters file in input
@@ -29,12 +30,12 @@ def system_parameters_setup(parfile):
     ###################################################
     print("reading parameters file named ", parfile)
     parameters = {}
-    pars = open(parfile)
-    lines = pars.split("\n")
-    for ln in lines:
+    pars = open(parfile,"r")
+    lines = pars.read().split("\n")
+    for ln in lines[:-1]:
         split_list = ln.split()
-        if len(split_list != 2):
-            raise Exception("badly formatted parameter line in : ", ln)
+        if len(split_list) != 2:
+            raise Exception(f"badly formatted parameter line\n{ln}")
         else:
             par_name = split_list[0]
             par_value = split_list[1]
@@ -171,11 +172,12 @@ class LinearTrentoGraphPredictor(nn.Module):
 # Load checkpoint
 
 def load_checkpoint(root_folder, dataset):
-    # load the model 
-    # checkpoint and json should be correctly formatted 
-    # {dataset}_checkpoint.pth 
-    # {dataset}_best_config.json
-    #############################################################
+    """ 
+    load the model 
+    checkpoint and json should be correctly formatted:
+    - {dataset}_checkpoint.pth 
+    - {dataset}_best_config.json
+    """
     dim_node_features, dim_edge_features, dim_target = 10, 1, 1
     model_state_dict = torch.load(Path(root_folder, f'{dataset}_checkpoint.pth'),map_location=map_location)
     with open(Path(root_folder, f'{dataset}_best_config.json'), 'r') as f:
@@ -185,13 +187,6 @@ def load_checkpoint(root_folder, dataset):
     model.load_state_dict(model_state_dict['model_state'])
     model.eval()
     return model
-
-parameters = system_parameters_setup(sys.argv[1])
-print(parameters)
-#dataset = '4ake' # or '4ake'
-#model = load_checkpoint(root_folder='.', dataset=dataset)
-
-# Create input graph
 
 def load_graph_data(features_file, adjacency_file):
     """
@@ -227,52 +222,62 @@ def add_sites(x, sites):
 def create_graph_object(x, edge_index, edge_attr):
     return Batch.from_data_list([Data(x=x, edge_index=edge_index, edge_attr=edge_attr)])
 
-import pickle
+# main body
+
+parameters = system_parameters_setup(sys.argv[1])
+print(parameters)
+dataset = parameters["dataset"] # or '4ake'
+
+# load graph 
+
 with open(f'./graph_{dataset}.pkl', 'rb') as f:
     x, edge_index, edge_attr = pickle.load(f)
 x, edge_index, edge_attr = torch.tensor(x), torch.tensor(edge_index, dtype=torch.long), torch.tensor(edge_attr)
 
+# load checkpoint
+model = load_checkpoint(root_folder='.', dataset=dataset)
 
-for i in range(len(opt_maps)):
-    first_opt_binary = torch.zeros(1656, dtype=torch.float)
-    for el in opt_maps[i]:
-      first_opt_binary[el] = 1.0
-    x = add_sites(x, first_opt_binary)
-    g = create_graph_object(x, edge_index, edge_attr)
-    model = model.to('cpu')
-    g = g.to('cpu')
-    
-    #K = 0.0013363595837560089  # Used to conform with previous work from Giulini et al.
-    smap = model(g).detach().item()
-    print(f'S_map is {smap}')
+# Create input graph
+
+#for i in range(len(opt_maps)):
+#    first_opt_binary = torch.zeros(1656, dtype=torch.float)
+#    for el in opt_maps[i]:
+#      first_opt_binary[el] = 1.0
+#    x = add_sites(x, first_opt_binary)
+#    g = create_graph_object(x, edge_index, edge_attr)
+#    model = model.to('cpu')
+#    g = g.to('cpu')
+#    
+#    #K = 0.0013363595837560089  # Used to conform with previous work from Giulini et al.
+#    smap = model(g).detach().item()
+#    print(f'S_map is {smap}')
 
 ###########################################
 
 print("starting wang landau exploration")
 
-#heavy_nr = 1656
-#n_rand = 1656
-#at_nr=numpy.zeros(shape=(heavy_nr), dtype=int)
+heavy_nr = parameters["heavy_nr"]
+n_rand = parameters["nrand"]
+at_nr=numpy.zeros(shape=(heavy_nr), dtype=int)
 #
-#os.mkdir('Histograms_checks_4ake')
-#os.mkdir('Histograms_final_4ake')
-#os.mkdir('Min_maps_checks_4ake')
-#os.mkdir('Min_maps_final_4ake')
-#os.mkdir('Max_maps_checks_4ake')
-#os.mkdir('Max_maps_final_4ake')
+os.mkdir(f'Histograms_checks_{dataset}')
+os.mkdir(f'Histograms_final_{dataset}')
+os.mkdir(f'Min_maps_checks_{dataset}')
+os.mkdir(f'Min_maps_final_{dataset}')
+os.mkdir(f'Max_maps_checks_{dataset}')
+os.mkdir(f'Max_maps_final_{dataset}')
 #
-#check_histo=100
-#min_MC_moves=100
+check_histo=parameters["check_histo"]
+min_MC_moves=parameters["min_MC_moves"]
 #
-#print ("Initial time: ", datetime.datetime.now())
+print ("Initial time: ", datetime.datetime.now())
 #
-#mapping = torch.zeros(1656, dtype=torch.int)
-#mapping_prime = torch.zeros(1656, dtype=torch.int)
-#print("mapping.shape[0]",mapping.shape[0])
+mapping = torch.zeros(heavy_nr, dtype=torch.int)
+mapping_prime = torch.zeros(heavy_nr, dtype=torch.int)
 #
 ## cgsites
-#nCG_sites=214
-#print("Number of CG sites =",nCG_sites)
+nCG_sites=parameters["nCG_sites"]
+print(f"Number of CG sites = {nCG_sites}")
 #
 #nsites=0
 #while nsites<nCG_sites:
