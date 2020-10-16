@@ -18,8 +18,8 @@ from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn.inits import reset
 
 # Wand Landau modules
-import numpy
-import datetime
+import numpy as np
+import datetime as dt
 import math
 import os
 import sys
@@ -226,7 +226,8 @@ def create_graph_object(x, edge_index, edge_attr):
 
 parameters = system_parameters_setup(sys.argv[1])
 print(parameters)
-dataset = parameters["dataset"] # or '4ake'
+dataset = parameters["dataset"] # '6d93' or '4ake'
+task = parameters["task"] # 'test' for testing, 'bench' for benchmarking, 'run' for production runs
 
 # load graph 
 
@@ -256,38 +257,47 @@ model = load_checkpoint(root_folder='.', dataset=dataset)
 
 print("starting wang landau exploration")
 
-heavy_nr = parameters["heavy_nr"]
-n_rand = parameters["nrand"]
-at_nr=numpy.zeros(shape=(heavy_nr), dtype=int)
+n_heavy = int(parameters["n_heavy"])
+n_rand = int(parameters["n_rand"])
+at_nr=np.zeros(shape=(n_heavy), dtype=int)
 #
-os.mkdir(f'Histograms_checks_{dataset}')
-os.mkdir(f'Histograms_final_{dataset}')
-os.mkdir(f'Min_maps_checks_{dataset}')
-os.mkdir(f'Min_maps_final_{dataset}')
-os.mkdir(f'Max_maps_checks_{dataset}')
-os.mkdir(f'Max_maps_final_{dataset}')
+if task != "test":
+    # no testing. build directories
+    os.mkdir(f'Histograms_checks_{dataset}')
+    os.mkdir(f'Histograms_final_{dataset}')
+    os.mkdir(f'Min_maps_checks_{dataset}')
+    os.mkdir(f'Min_maps_final_{dataset}')
+    os.mkdir(f'Max_maps_checks_{dataset}')
+    os.mkdir(f'Max_maps_final_{dataset}')
 #
-check_histo=parameters["check_histo"]
-min_MC_moves=parameters["min_MC_moves"]
+check_histo=int(parameters["check_histo"])
+min_MC_moves=int(parameters["min_mc_moves"])
 #
-print ("Initial time: ", datetime.datetime.now())
+print ("Initial time: ", dt.datetime.now())
 #
-mapping = torch.zeros(heavy_nr, dtype=torch.int)
-mapping_prime = torch.zeros(heavy_nr, dtype=torch.int)
+mapping = torch.zeros(n_heavy, dtype=torch.int)
+mapping_prime = torch.zeros(n_heavy, dtype=torch.int)
 #
 ## cgsites
-nCG_sites=parameters["nCG_sites"]
-print(f"Number of CG sites = {nCG_sites}")
-#
+ncg=int(parameters["ncg"])
+print(f"Number of CG sites = {ncg}")
+# mapping
+
+rd_sel = np.random.choice(np.arange(0,n_heavy), size=ncg)
+for el in rd_sel:
+    mapping[el] = 1
+print("random selection", rd_sel)
+#torch_mapping = torch.from_numpy(mapping)
 #nsites=0
 #while nsites<nCG_sites:
 #     r=numpy.random.randint(0,heavy_nr)
 #     if (mapping[r]==0):
 #        mapping[r]=1
 #        nsites+=1
-## print first
-#print("first mapping")
-#convert_mapping(mapping)
+## print first mapping
+
+print("first mapping")
+convert_mapping(mapping)
 ## writing first
 #outmap=open("Mapping_random_4ake_0.dat","w")
 #for i in range(heavy_nr):
@@ -303,6 +313,10 @@ print(f"Number of CG sites = {nCG_sites}")
 #    else:
 #       atom_ret.append(i)
 #
+atom_ret = np.nonzero(mapping)
+print(atom_ret)
+atom_nnret = np.nonzero(mapping == 0)
+print(atom_nnret)
 ##we want to save the minimum and maximum visited norm and mapping in each set of MC sweeps
 ## not really, delete this in the future
 #minmap=numpy.zeros(shape=(heavy_nr), dtype=int)
@@ -310,18 +324,18 @@ print(f"Number of CG sites = {nCG_sites}")
 #
 #
 ##These are the bins employed in the Wang-Landau sampling
-#maxnorm=108.5
+max_norm = float(parameters["max_norm"])
 #ref_maxnorm = 108.5 # highest value in ref histogram: print all values higher than this or lower than minnorm
-#minnorm = 89.5
-#delx= 0.2
-#nbins=int((maxnorm)/delx)+1
-#print("maxnorm - minnorm - delx - nbins", maxnorm, minnorm,delx,nbins)
-##Counter to start saving maps when all bins have been visited 
-#MC_COUNT_GIU=0
-##Variable saying every how many MC sweeps mappings have to be saved
-#MC_sweep_save=1
-## array containing the range of visited bins that are taken as reference
-#ref_visited_bins=numpy.zeros(shape=(nbins),dtype=int)
+min_norm = float(parameters["min_norm"])
+delx= float(parameters["delx"])
+nbins=int((max_norm)/delx)+1
+print("maxnorm - minnorm - delx - nbins", max_norm, min_norm,delx,nbins)
+#Counter to start saving maps when all bins have been visited 
+MC_COUNT_GIU=0
+#Variable saying every how many MC sweeps mappings have to be saved
+MC_sweep_save=1
+# array containing the range of visited bins that are taken as reference
+ref_visited_bins=np.zeros(shape=(nbins),dtype=int)
 #
 ##Take from a previous run the range of bins that HAVE to be visited before starting to save the mappings
 ##input_dos=[line.rstrip('\n') for line in open('reference_histogram_6d93_0.2_10.0-22.5.dat')]
@@ -364,13 +378,13 @@ print(f"Number of CG sites = {nCG_sites}")
 #
 ##--------------------------
 #
-##histogram for the wang-landau sampling
-#histo=numpy.zeros(shape=(nbins))
-##log of density of states for the wang-landau sampling
-#log_dofstates=numpy.zeros(shape=(nbins))
-##initial value of f factor for wang langau implementation ---> here it does not change!
-#logf=1
-#logf_final=1.e-6
+#histogram for the wang-landau sampling
+histo=np.zeros(shape=(nbins))
+#log of density of states for the wang-landau sampling
+log_dofstates=np.zeros(shape=(nbins))
+#initial value of f factor for wang langau implementation ---> here it does not change!
+logf=float(parameters["logf"])
+logf_final=float(parameters["logf_final"])
 #
 ##save first mapping norm and associated bin
 ##mapping_prime=metric_matrix.dot(mapping)
@@ -378,22 +392,25 @@ print(f"Number of CG sites = {nCG_sites}")
 #
 ###########################################################
 ###########################################################
-#x = add_sites(x,  mapping)
-#g = create_graph_object(x, edge_index, edge_attr)
-#model = model.to('cpu')
-#g = g.to('cpu')
+x = add_sites(x,  mapping)
+g = create_graph_object(x, edge_index, edge_attr)
+# model is loaded to selected location
+model = model.to(map_location)
+g = g.to(map_location)
 ## infer!
-#smap = model(g).detach().item()
-#print(f'starting S_map is {smap}')
+smap = model(g).detach().item()
+print(f'starting S_map is {smap}')
 ###########################################################
 ###########################################################
 #
-#ibin=int(smap/delx)
+ibin=int(smap/delx)
 #
 ##temporary mapping employed for the move
 ##mapping_temp=numpy.zeros(shape=(heavy_nr), dtype=int)
 #
-#mapping_temp = torch.zeros(1656, dtype=torch.int)
+mapping_temp = mapping.clone()
+mapping_temp[3] = 42
+print(mapping, mapping_temp)
 #for i in range(heavy_nr):
 #    mapping_temp[i]=mapping[i]
 #
@@ -405,30 +422,29 @@ print(f"Number of CG sites = {nCG_sites}")
 ## THEORETICALLY WE SHOULD START OUR SIM FROM THE CENTER OF THE INTERVAL...WHO CARES??
 #
 ##flatness criterion
-#pflat=0.80
+pflat=float(parameters["pflat"])
 #
 ##this is the first time you run it
-#first=True
+first=True
 #
 ##Array counting if a certain bin has been visited on the fly during the wang-landau, cheched against the reference
-#visited_bins=numpy.zeros(shape=(nbins),dtype=int)
+visited_bins=np.zeros(shape=(nbins),dtype=int)
 #
 ##saying that the first guy was visited
-#log_dofstates[ibin]+=logf
-#visited_bins[ibin]=1
+log_dofstates[ibin]+=logf
+visited_bins[ibin]=1
+#this tells us when a new bin is visited
+visited=True
 #
-##this tells us when a new bin is visited
-#visited=True
+#this tells us when all bins with respect to the reference have been visited to start saving the mappings
+visited_all=False
 #
-##this tells us when all bins with respect to the reference have been visited to start saving the mappings
-#visited_all=False
+#Check that the total number of mappings saved is the right one, in that case stop
+all_maps_saved=False
 #
-##Check that the total number of mappings saved is the right one, in this case stop
-#all_maps_saved=False
+print (f"Beginning Wang-Landau mapping space exploration to save mappings: {dt.datetime.now()}")
 #
-#print ("Beginning Wang-Landau mapping space exploration to save mappings: ", datetime.datetime.now())
-#
-#tot_knt = 0
+tot_knt = 0
 ##while all_maps_saved==False:
 ##for n in range(200):     
 ##    print("n = ",n)       
