@@ -1,0 +1,4 @@
+torch-scatter==2.0.4+cu100
+torch-sparse==0.6.0+cu100
+torch-spline-conv==1.2.0+cu100
+torch-geometric==1.4.2
