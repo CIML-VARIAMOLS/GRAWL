@@ -213,8 +213,9 @@ def add_sites(x, sites):
     """
     if sites is None:
         # Aggiungo un mapping random, in attesa che Marco passi quello vero come un 
-        random_sites = (torch.rand(x.shape[0]) > 0.5).float()
-        x[:, -1] = random_sites
+        #random_sites = (torch.rand(x.shape[0]) > 0.5).float()
+        #x[:, -1] = random_sites
+        raise Exception("None sites passed to add_sites")
     else:
         x[:, -1] = sites
     return x
@@ -443,201 +444,204 @@ all_maps_saved=False
 print (f"Beginning Wang-Landau mapping space exploration to save mappings: {dt.datetime.now()}")
 #
 tot_knt = 0
+
+if task == "test":
 ##while all_maps_saved==False:
-##for n in range(200):     
-##    print("n = ",n)       
-#while logf>=logf_final:
-##reset all counters
-#    if (visited==True):     
-#        print("Iteration of Wang-Landau with f=%.10lf"%logf)
-#
-#    count=0
-#    MC_move=0
-#    check=check_histo+1
-#    check_flat=False
-#    #reset minimum and maximum visited norms
-#    minnormrun=5000.
-#    maxnormrun=0.
-#    #reset histogram
-#    for j_bin in range(nbins):
-#        histo[j_bin]=0
-#    while check_flat==False:
-#        print("count ", count)
-#        print("tot_knt", tot_knt)
-#        #print("visited_bins", visited_bins)
-#    #for j in range(200):
-#        #print("j = ",j)      
-#        #while check_flat==False:
-#        for dummy in range(n_rand):
-#            visited=True
-#
-#            while(True):
-#                at1=numpy.random.randint(0,heavy_nr)
-#                at2=numpy.random.randint(0,heavy_nr)
-#                if(mapping[at1]==1)and(mapping[at2]==0):
-#                    #print("at1", at1, "at2", at2)
-#                    break
-#
-#            mapping_temp[at1]=0
-#            mapping_temp[at2]=1
-#            #print("mapping_temp")
-#            #convert_mapping(mapping_temp)
-#            #mapping_prime=metric_matrix.dot(mapping_temp)
-#            #norm_mapping_temp=numpy.dot(mapping_temp,mapping_prime)/neighat # not useful anymore
-#            #ibin_new=int(norm_mapping_temp/delx)
-#            #smap_temp = perform_inference(x,model)
-#            ##########################################################
-#            ##########################################################
-#            x = add_sites(x, mapping_temp)
-#            g = create_graph_object(x, edge_index, edge_attr)
-#            model = model.to('cpu')
-#            g = g.to('cpu')
-#            # infer!
-#            smap_temp = model(g).detach().item()
-#            if smap_temp > max_explorable or smap_temp < min_explorable:
-#                print(f'out of the box S_map_temp is {smap_temp}')
-#                #convert_mapping(mapping_temp)
-#            tot_knt += 1
-#            #print(f'S_map is {smap_temp}')
-#            ##########################################################
-#            ##########################################################
-#            if (smap_temp>min_explorable)and(smap_temp<max_explorable): #the proposed mapping is in the window, run the acceptance
-#                ibin_new=int(smap_temp/delx)
-#                prob=log_dofstates[ibin]-log_dofstates[ibin_new]
-#                if smap_temp<minnormrun:
-#                   minnormrun=smap_temp
-#                   for i in range(heavy_nr):
-#                       minmap[i]=mapping_temp[i]
-#                if smap_temp>maxnormrun:
-#                   maxnormrun=smap_temp
-#                   for i in range(heavy_nr):
-#                       maxmap[i]=mapping_temp[i]
-#                # acceptance rule
-#                if(numpy.log(numpy.random.uniform()) < prob): #move accepted, update mapping and stuff
-#                    ibin=ibin_new
-#                    smap=smap_temp 
-#                    mapping[at1]=0
-#                    mapping[at2]=1
-#                    if visited_bins[ibin]==0:
-#                       print("new visited_bin %d with norm %lf"%(ibin,delx*ibin))
-#                       print("visitor smap", smap)
-#                       print("visitor mapping")
-#                       convert_mapping(mapping)
-#                       visited_bins[ibin]=1
-#                       visited=False
-#                       minlogdof=numpy.min(log_dofstates[numpy.nonzero(log_dofstates)])
-#                # rejection
-#                else:
-#                    mapping_temp[at1]=1
-#                    mapping_temp[at2]=0
-#                # update histogram and density of states    
-#                histo[ibin]+=1
-#                count+=1
-#                if visited==False:
-#                    print("visited == False, ibin ", ibin)
-#                    log_dofstates[ibin]+=minlogdof
-#                    break
-#                else:
-#                   log_dofstates[ibin]+=logf 
-#            # condition on min_explorable and max_explorable
-#            else:    #BINDER STUFF: the proposed mapping is outside the window, so reject the move and update histo and dos of the old mapping
-#                print("out of bounds smap, rejecting and updating current bin")
-#                mapping_temp[at1]=1
-#                mapping_temp[at2]=0
-#                histo[ibin]+=1
-#                count+=1
-#                log_dofstates[ibin]+=logf
-#
-#
-#        #update counters
-#        MC_move+=1
-#        check+=1
-#        if MC_move%10==0: 
-#            print("MCmove: %d"%(MC_move))   
-#            print("log_dofstates", log_dofstates) 
-#        # save mapping if logf factor is already < 0.5
-#        if logf < 0.5:
-#            print("saving mapping")
-#            #savebin = int((smap-min_explorable)/0.775)
-#            int((smap-min_explorable)/1.0)
-#            print("saving mapping in savebin", savebin)
-#            convert_mapping(mapping)
-#            append_mapping(mapping,smap,savebin,min_explorable,1.0) # 1.0 is the delnorm, so that we have 19 bins for the mapping
-#
-#        #Everything now is checked provided that this is not a newly visited bin                
-#        #a bin has not been visited, restart the histogram
-#        if (visited==False):
-#            check_flat=True
-#            break
-#                
-#                #all bin have bin visited check histogram depening on the number of moves
-#        elif(check>=check_histo)and(visited==True)and(MC_move>=min_MC_moves):
-#            print("Checking histo of f = %.10lf, MC_move = %d, checkbox = %d"%(logf,MC_move,check))
-#            outhist=open("Histograms_checks_4ake/Histo_%.10lf_%d_%d.dat"%(logf,MC_move,check),"w")
-#            for wbin in range(nbins):
-#                xc=delx*wbin
-#                outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
-#            outhist.close()
-#
-#            # Save the min and max norm maps in this section
-#            outmap=open("Min_maps_checks_4ake/Min_map_%.10lf_%d_%d.dat"%(logf,MC_move,check),"w")
-#            outmap.write("Norm = %lf\n"%minnormrun)
-#            for i in range(heavy_nr):
-#                outmap.write("%d %d\n"%(at_nr[i],minmap[i]))
-#            outmap.close()
-#            outmap=open("Max_maps_checks_4ake/Max_map_%.10lf_%d_%d.dat"%(logf,MC_move,check),"w")
-#            outmap.write("Norm = %lf\n"%maxnormrun)
-#            for i in range(heavy_nr):
-#                outmap.write("%d %d\n"%(at_nr[i],maxmap[i]))
-#            outmap.close()
-#
-#            #reset the check flag
-#            check=0
-#
-#            count_bins=0.
-#            avg_hist=0.
-#            for bins in range(nbins):
-#                if visited_bins[bins]==1:
-#                   avg_hist+=histo[bins]
-#                   count_bins+=1
-#            avg_hist=avg_hist/count_bins
-#            
-#            print("Average of histogram: %lf, on a total number of bins= %d"%(avg_hist,count_bins))
-#
-#            #For an histogram to be flat, the logdos of all visited states must be higher than 0.8 the average.
-#
-#            checkall=True
-#            for bins in range(nbins):
-#                if visited_bins[bins]==1:
-#                    if (histo[bins]<pflat*avg_hist)or(histo[bins]>((2.-pflat)*avg_hist)):
-#                        checkall=False
-#                        break
-#
-#            if (checkall==False):
-#                print("Flatness condition not satisfied: some bins have a number of counts smaller than pflat*average = %lf or higher than (2-pflat)*average = %lf"%(pflat*avg_hist,(2.-pflat)*avg_hist))
-#            else:
-#                print("FLATNESS CONDITION SATISFIED")       
-#                print("log_dofstates when FLATNESS CONDITION SATISFIED", log_dofstates)
-#                check_flat=True
-#                print("Iteration with factor %.10lf completed, histogram flattened"%logf,datetime.datetime.now())
-#                outhist=open("Histograms_final_4ake/Histo_final_f_%.10lf.dat"%logf,"w")
-#                for wbin in range(nbins):
-#                    xc=delx*wbin
-#                    outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
-#
-#                #the histogram is flat: update the logf
-#                logf=logf/2.
-#
-#                # Save the min and max norm maps in this final section
-#                outmap=open("Min_maps_final_4ake/Min_map_final_%.10lf"%logf,"w")
-#                outmap.write("Norm = %lf\n"%minnormrun)
-#                for i in range(heavy_nr):
-#                    outmap.write("%d %d\n"%(at_nr[i],minmap[i]))
-#                outmap.close()
-#                outmap=open("Max_maps_final_4ake/Max_map_final_%.10lf"%logf,"w")
-#                outmap.write("Norm = %lf\n"%maxnormrun)
-#                for i in range(heavy_nr):
-#                    outmap.write("%d %d\n"%(at_nr[i],maxmap[i]))
-#                outmap.close()
-#
-#print ("Final time: ", datetime.datetime.now())
+    print(task)
+elif task == "run":
+    for n in range(200):     
+        print("n = ",n)       
+    #while logf>=logf_final:
+    ##reset all counters
+        if (visited==True):     
+            print("Iteration of Wang-Landau with f=%.10lf"%logf)
+        count=0
+        mc_move=0
+        check=check_histo+1
+        check_flat=False
+        #reset minimum and maximum visited norms
+        minnormrun=5000.
+        maxnormrun=0.
+        #reset histogram
+    #    for j_bin in range(nbins):
+    #        histo[j_bin]=0
+        histo=np.zeros(shape=(nbins))
+        while check_flat==False:
+            print("count ", count)
+            print("tot_knt", tot_knt)
+        #for j in range(200):
+            #print("j = ",j)      
+            #while check_flat==False:
+            for dummy in range(n_rand):
+                visited=True
+    #
+                while(True):
+                    at1=numpy.random.randint(0,heavy_nr)
+                    at2=numpy.random.randint(0,heavy_nr)
+                    if(mapping[at1]==1)and(mapping[at2]==0):
+                        #print("at1", at1, "at2", at2)
+                        break
+    #
+                mapping_temp[at1]=0
+                mapping_temp[at2]=1
+                #print("mapping_temp")
+                #convert_mapping(mapping_temp)
+                #mapping_prime=metric_matrix.dot(mapping_temp)
+                #norm_mapping_temp=numpy.dot(mapping_temp,mapping_prime)/neighat # not useful anymore
+                #ibin_new=int(norm_mapping_temp/delx)
+                #smap_temp = perform_inference(x,model)
+    #            ##########################################################
+    #            ##########################################################
+                x = add_sites(x, mapping_temp)
+                g = create_graph_object(x, edge_index, edge_attr)
+                model = model.to('cpu')
+                g = g.to('cpu')
+                # infer!
+                smap_temp = model(g).detach().item()
+                if smap_temp > max_explorable or smap_temp < min_explorable:
+                    print(f'out of the box S_map_temp is {smap_temp}')
+                    #convert_mapping(mapping_temp)
+                tot_knt += 1
+                #print(f'S_map is {smap_temp}')
+    #            ##########################################################
+    #            ##########################################################
+    #            if (smap_temp>min_explorable)and(smap_temp<max_explorable): #the proposed mapping is in the window, run the acceptance
+    #                ibin_new=int(smap_temp/delx)
+    #                prob=log_dofstates[ibin]-log_dofstates[ibin_new]
+    #                if smap_temp<minnormrun:
+    #                   minnormrun=smap_temp
+    #                   for i in range(heavy_nr):
+    #                       minmap[i]=mapping_temp[i]
+    #                if smap_temp>maxnormrun:
+    #                   maxnormrun=smap_temp
+    #                   for i in range(heavy_nr):
+    #                       maxmap[i]=mapping_temp[i]
+    #                # acceptance rule
+    #                if(numpy.log(numpy.random.uniform()) < prob): #move accepted, update mapping and stuff
+    #                    ibin=ibin_new
+    #                    smap=smap_temp 
+    #                    mapping[at1]=0
+    #                    mapping[at2]=1
+    #                    if visited_bins[ibin]==0:
+    #                       print("new visited_bin %d with norm %lf"%(ibin,delx*ibin))
+    #                       print("visitor smap", smap)
+    #                       print("visitor mapping")
+    #                       convert_mapping(mapping)
+    #                       visited_bins[ibin]=1
+    #                       visited=False
+    #                       minlogdof=numpy.min(log_dofstates[numpy.nonzero(log_dofstates)])
+    #                # rejection
+    #                else:
+    #                    mapping_temp[at1]=1
+    #                    mapping_temp[at2]=0
+    #                # update histogram and density of states    
+    #                histo[ibin]+=1
+    #                count+=1
+    #                if visited==False:
+    #                    print("visited == False, ibin ", ibin)
+    #                    log_dofstates[ibin]+=minlogdof
+    #                    break
+    #                else:
+    #                   log_dofstates[ibin]+=logf 
+    #            # condition on min_explorable and max_explorable
+    #            else:    #BINDER STUFF: the proposed mapping is outside the window, so reject the move and update histo and dos of the old mapping
+    #                print("out of bounds smap, rejecting and updating current bin")
+    #                mapping_temp[at1]=1
+    #                mapping_temp[at2]=0
+    #                histo[ibin]+=1
+    #                count+=1
+    #                log_dofstates[ibin]+=logf
+    #
+    #
+    #        #update counters
+    #        MC_move+=1
+    #        check+=1
+    #        if MC_move%10==0: 
+    #            print("MCmove: %d"%(MC_move))   
+    #            print("log_dofstates", log_dofstates) 
+    #        # save mapping if logf factor is already < 0.5
+    #        if logf < 0.5:
+    #            print("saving mapping")
+    #            #savebin = int((smap-min_explorable)/0.775)
+    #            int((smap-min_explorable)/1.0)
+    #            print("saving mapping in savebin", savebin)
+    #            convert_mapping(mapping)
+    #            append_mapping(mapping,smap,savebin,min_explorable,1.0) # 1.0 is the delnorm, so that we have 19 bins for the mapping
+    #
+    #        #Everything now is checked provided that this is not a newly visited bin                
+    #        #a bin has not been visited, restart the histogram
+    #        if (visited==False):
+    #            check_flat=True
+    #            break
+    #                
+    #                #all bin have bin visited check histogram depening on the number of moves
+    #        elif(check>=check_histo)and(visited==True)and(MC_move>=min_MC_moves):
+    #            print("Checking histo of f = %.10lf, MC_move = %d, checkbox = %d"%(logf,MC_move,check))
+    #            outhist=open("Histograms_checks_4ake/Histo_%.10lf_%d_%d.dat"%(logf,MC_move,check),"w")
+    #            for wbin in range(nbins):
+    #                xc=delx*wbin
+    #                outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
+    #            outhist.close()
+    #
+    #            # Save the min and max norm maps in this section
+    #            outmap=open("Min_maps_checks_4ake/Min_map_%.10lf_%d_%d.dat"%(logf,MC_move,check),"w")
+    #            outmap.write("Norm = %lf\n"%minnormrun)
+    #            for i in range(heavy_nr):
+    #                outmap.write("%d %d\n"%(at_nr[i],minmap[i]))
+    #            outmap.close()
+    #            outmap=open("Max_maps_checks_4ake/Max_map_%.10lf_%d_%d.dat"%(logf,MC_move,check),"w")
+    #            outmap.write("Norm = %lf\n"%maxnormrun)
+    #            for i in range(heavy_nr):
+    #                outmap.write("%d %d\n"%(at_nr[i],maxmap[i]))
+    #            outmap.close()
+    #
+    #            #reset the check flag
+    #            check=0
+    #
+    #            count_bins=0.
+    #            avg_hist=0.
+    #            for bins in range(nbins):
+    #                if visited_bins[bins]==1:
+    #                   avg_hist+=histo[bins]
+    #                   count_bins+=1
+    #            avg_hist=avg_hist/count_bins
+    #            
+    #            print("Average of histogram: %lf, on a total number of bins= %d"%(avg_hist,count_bins))
+    #
+    #            #For an histogram to be flat, the logdos of all visited states must be higher than 0.8 the average.
+    #
+    #            checkall=True
+    #            for bins in range(nbins):
+    #                if visited_bins[bins]==1:
+    #                    if (histo[bins]<pflat*avg_hist)or(histo[bins]>((2.-pflat)*avg_hist)):
+    #                        checkall=False
+    #                        break
+    #
+    #            if (checkall==False):
+    #                print("Flatness condition not satisfied: some bins have a number of counts smaller than pflat*average = %lf or higher than (2-pflat)*average = %lf"%(pflat*avg_hist,(2.-pflat)*avg_hist))
+    #            else:
+    #                print("FLATNESS CONDITION SATISFIED")       
+    #                print("log_dofstates when FLATNESS CONDITION SATISFIED", log_dofstates)
+    #                check_flat=True
+    #                print("Iteration with factor %.10lf completed, histogram flattened"%logf,datetime.datetime.now())
+    #                outhist=open("Histograms_final_4ake/Histo_final_f_%.10lf.dat"%logf,"w")
+    #                for wbin in range(nbins):
+    #                    xc=delx*wbin
+    #                    outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
+    #
+    #                #the histogram is flat: update the logf
+    #                logf=logf/2.
+    #
+    #                # Save the min and max norm maps in this final section
+    #                outmap=open("Min_maps_final_4ake/Min_map_final_%.10lf"%logf,"w")
+    #                outmap.write("Norm = %lf\n"%minnormrun)
+    #                for i in range(heavy_nr):
+    #                    outmap.write("%d %d\n"%(at_nr[i],minmap[i]))
+    #                outmap.close()
+    #                outmap=open("Max_maps_final_4ake/Max_map_final_%.10lf"%logf,"w")
+    #                outmap.write("Norm = %lf\n"%maxnormrun)
+    #                for i in range(heavy_nr):
+    #                    outmap.write("%d %d\n"%(at_nr[i],maxmap[i]))
+    #                outmap.close()
+    #
+    #print ("Final time: ", datetime.datetime.now())    
