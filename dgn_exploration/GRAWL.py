@@ -24,6 +24,8 @@ import math
 import os
 import sys
 
+print ("Initial time: ", dt.datetime.now())
+
 def system_parameters_setup(parfile):
     # receives the name of the parameters file in input
     # parses it and gives back a dictionary
@@ -273,9 +275,7 @@ if task != "test":
     #os.mkdir(f'Max_maps_final_{dataset}')
 #
 check_histo=int(parameters["check_histo"])
-min_MC_moves=int(parameters["min_mc_moves"])
-#
-print ("Initial time: ", dt.datetime.now())
+min_mc_moves=int(parameters["min_mc_moves"])
 #
 mapping = torch.zeros(n_heavy, dtype=torch.int)
 mapping_prime = torch.zeros(n_heavy, dtype=torch.int)
@@ -285,46 +285,21 @@ ncg=int(parameters["ncg"])
 print(f"Number of CG sites = {ncg}")
 # mapping
 
-rd_sel = np.random.choice(np.arange(0,n_heavy), size=ncg)
+rd_sel = np.random.choice(np.arange(0,n_heavy), size=ncg, replace=False)
+#print(rd_sel)
+#print("shape rd_sel", rd_sel.shape)
 for el in rd_sel:
     mapping[el] = 1
-print("random selection", rd_sel)
-#torch_mapping = torch.from_numpy(mapping)
-#nsites=0
-#while nsites<nCG_sites:
-#     r=numpy.random.randint(0,heavy_nr)
-#     if (mapping[r]==0):
-#        mapping[r]=1
-#        nsites+=1
-## print first mapping
 
 print("first mapping")
 convert_mapping(mapping)
-## writing first
-#outmap=open("Mapping_random_4ake_0.dat","w")
-#for i in range(heavy_nr):
-#    outmap.write("%d %d\n"%(at_nr[i],mapping[i]))
-#outmap.close()
-#
-#atom_ret=[]
-#atom_nnret=[]
-#
-#for i in range(heavy_nr):
-#    if mapping[i]==0:
-#       atom_nnret.append(i)
-#    else:
-#       atom_ret.append(i)
-#
+# atom_ret and atom_nnret
 atom_ret = np.nonzero(mapping)
-print(atom_ret)
+print("shape atom_ret", atom_ret.shape)
+#print(atom_ret)
 atom_nnret = np.nonzero(mapping == 0)
-print(atom_nnret)
-##we want to save the minimum and maximum visited norm and mapping in each set of MC sweeps
-## not really, delete this in the future
-#minmap=numpy.zeros(shape=(heavy_nr), dtype=int)
-#maxmap=numpy.zeros(shape=(heavy_nr), dtype=int)
-#
-#
+print("shape atom_nnret", atom_nnret.shape)
+
 max_norm = float(parameters["max_norm"])
 #ref_maxnorm = 108.5 # highest value in ref histogram: print all values higher than this or lower than minnorm
 min_norm = float(parameters["min_norm"])
@@ -338,47 +313,6 @@ MC_COUNT_GIU=0
 MC_sweep_save=1
 # array containing the range of visited bins that are taken as reference
 ref_visited_bins=np.zeros(shape=(nbins),dtype=int)
-#
-##Take from a previous run the range of bins that HAVE to be visited before starting to save the mappings
-##input_dos=[line.rstrip('\n') for line in open('reference_histogram_6d93_0.2_10.0-22.5.dat')]
-##print("input_dos", input_dos)
-##totbins=len(input_dos)
-##print("totbins = ",totbins)
-##min=False
-##max=False
-##for bins in range(totbins):
-##    print("bins = ",bins)  
-##    if float(input_dos[bins].split()[2])>0.1:
-##       ref_visited_bins[bins]=1
-##       if min==False:
-##          min_bin_visited=bins
-##          min_norm_visited=delx*bins
-##          min=True
-##       if max==False:
-##          if (float(input_dos[bins].split()[2])>0.1)and(float(input_dos[bins+1].split()[2])<0.1):
-##             max=True
-##             max_bin_visited=bins 
-##             max_norm_visited=delx*(bins+1)
-##print ("Range to explore: min norm = %lf, max norm = %lf"%(min_norm_visited,max_norm_visited))
-#
-## Size and number of bins for saving the mappings
-##delnorm=1.
-##nbins_savemap=math.ceil((max_norm_visited-min_norm_visited)/delnorm)
-#
-##print("Number of bins in which sampled mappings between minnorm and maxnorm are divided:",nbins_savemap)
-##print("Effective norm range covered: %lf - %lf"%(min_norm_visited,min_norm_visited+nbins_savemap*delnorm))  
-#
-##Max number of saved maps per bin
-##max_saved=5000
-#
-## Histogram containing the number of mappings saved in each bin of size delnorm
-##histo_savedmaps=numpy.zeros(shape=(nbins_savemap),dtype=int)
-#
-##Histograms containing the saved maps and the number of saved maps per bin
-##mappings_saved=numpy.zeros(shape=(nbins_savemap,max_saved,heavy_nr),dtype=int)
-##norm_mappings_saved=numpy.zeros(shape=(nbins_savemap,max_saved))
-#
-##--------------------------
 #
 #histogram for the wang-landau sampling
 histo=np.zeros(shape=(nbins))
@@ -410,28 +344,14 @@ smap = model(g).detach().item()
 print(f'starting S_map is {smap}')
 ###########################################################
 ###########################################################
-#
 ibin=int(smap/delx)
-#
-##temporary mapping employed for the move
-##mapping_temp=numpy.zeros(shape=(heavy_nr), dtype=int)
 # creating a temporary mapping by cloning torch mapping
 mapping_temp = mapping.clone()
-#for i in range(heavy_nr):
-#    mapping_temp[i]=mapping[i]
-#
-##This is a windowed Wang-Landau exploration, we have to set the minimum and maximum of the window
-#min_explorable=89.5
-#max_explorable=108.5
-##print("MINVAL MAXVAL", MINVAL, MAXVAL)
-#
 ## THEORETICALLY WE SHOULD START OUR SIM FROM THE CENTER OF THE INTERVAL...WHO CARES??
-#
 ##flatness criterion
 pflat=float(parameters["pflat"])
-#
-##this is the first time you run it
-first=True
+#this is the first time you run it
+#first=True
 #
 ##Array counting if a certain bin has been visited on the fly during the wang-landau, cheched against the reference
 visited_bins=np.zeros(shape=(nbins),dtype=int)
@@ -441,80 +361,123 @@ log_dofstates[ibin]+=logf
 visited_bins[ibin]=1
 #this tells us when a new bin is visited
 visited=True
-#
 #this tells us when all bins with respect to the reference have been visited to start saving the mappings
 visited_all=False
-#
 #Check that the total number of mappings saved is the right one, in that case stop
 all_maps_saved=False
-#
 print (f"Beginning Wang-Landau mapping space exploration to save mappings: {dt.datetime.now()}")
 #
 tot_knt = 0
 
-#### functions for wang landau
+""" 
+functions for wang landau:
+    - make_a_move
+    - perform_inference
+    - print_final_histogram
+"""
 
 def make_a_move(torch_mapping, np_retained, np_not_retained):
     """
     routine that creates mapping_temp by changing a site
 
     """
-    at1 = 
+    at1_idx = np.random.randint(0,ncg)
+    at1 = np_retained[at1_idx]
+    at2_idx = np.random.randint(0,n_heavy-ncg)
+    at2 = np_not_retained[at2_idx]
+    torch_mapping[at1] = 0
+    torch_mapping[at2] = 1
+    #print(f"at1 {at1}, at2 {at2}")
+    return torch_mapping,at1_idx,at2_idx
 
-if task == "test":
+def perform_inference(x,edge_index,edge_attr, mapping_temp, model):
+    """
+    loads the model and performs inference
+    There's an if on the device used
+    """
+    x = add_sites(x, mapping_temp)
+    g = create_graph_object(x, edge_index, edge_attr)
+    if torch.cuda.is_available():
+        gpu1 = torch.device("cuda:0")
+        model = model.to(gpu1)
+        #print("type g", type(g))
+        g = g.to(gpu1)
+    else:
+        model = model.to(map_location)
+        g = g.to(map_location)
+    # infer!
+    smap_temp = model(g).detach().item()
+    return smap_temp
+
+def print_final_histogram(histo,log_dofstates,logf,nbins,delx,wbin,count,final):
+    """
+    printing intermediate and final histograms
+    """
+    if final == "yes":
+        print("log_dofstates when FLATNESS CONDITION SATISFIED", log_dofstates)
+        print("Iteration with factor %.10lf completed, histogram flattened"%logf,dt.datetime.now())
+        outhist=open("Histograms_final_4ake/Histo_final_f_%.10lf.dat"%logf,"w")
+    else:
+        print("Checking histo of f = %.10lf, MC_move = %d, checkbox = %d"%(logf,mc_move,check))
+        outhist=open("Histograms_checks_4ake/Histo_%.10lf_%d_%d.dat"%(logf,mc_move,check),"w")
+    for wbin in range(nbins):
+        xc=delx*wbin
+        outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
+    outhist.close()
+
+if task == "runvi":
 ##while all_maps_saved==False:
     print(task)
-elif task == "run":
+elif task == "bench":
+    # benchmarking
+    bench_steps = 10000
+    print("benchmarking with 10000 inferences")
+    t_start = dt.datetime.now()
+    for s in range(bench_steps):
+        # do inference 
+        smap_bench = perform_inference(x,edge_index,edge_attr, mapping, model)
+        print(f"smap_bench[{s}] = {smap_bench}")
+    t_end = dt.datetime.now() - t_start
+    print(f"time required to do inference on {bench_steps} = {t_end}")
+
+elif task == "test":
     #for n in range(200):     
     #    print("n = ",n)       
     while logf>=logf_final:
     ##reset all counters
-        if (visited==True):     
+        if (visited==True):
             print("Iteration of Wang-Landau with f=%.10lf"%logf)
         count=0
         mc_move=0
         check=check_histo+1
         check_flat=False
-        #reset minimum and maximum visited norms
-        #minnormrun=5000.
-        #maxnormrun=0.
         #reset histogram
         histo=np.zeros(shape=(nbins))
-        while check_flat==False:
+        #while check_flat==False:
+        for s in range(n_rand):
             print("count ", count)
             print("tot_knt", tot_knt)
-        #for j in range(200):
-            #print("j = ",j)      
+            # sweep of n_rand steps
             for dummy in range(n_rand):
                 visited=True
-                #while(True):
-                #    at1=np.random.randint(0,n_heavy)
-                #    at2=np.random.randint(0,n_heavy)
-                #    if(mapping[at1]==1)and(mapping[at2]==0):
-                #        #print("at1", at1, "at2", at2)
-                #        break
-                #mapping_temp[at1]=0
-                #mapping_temp[at2]=1
-                make_a_move(mapping,atom_ret,atom_nnret)
+                #print("shapes: ",atom_ret.shape, atom_nnret.shape)
+                mapping_temp,at1_idx,at2_idx = make_a_move(mapping_temp,atom_ret,atom_nnret)
+                # swapping last item of the arrays with the selected atom, it's O(1)
+                at1, at2 =  atom_ret[at1_idx].clone(), atom_nnret[at2_idx].clone()
+                #print(f"at1,{at1}, at2 {at2}")
+                atom_ret[at1_idx] = atom_ret[-1]
+                atom_nnret[at2_idx] = atom_nnret[-1]
+                #print(f"atom_ret[{at1_idx}] {atom_ret[at1_idx]} atom_nnret[{at2_idx}] {atom_nnret[at2_idx]}")
+                atom_ret[-1] = at1
+                atom_nnret[-1] = at2
+                #print(f"atom_ret[-1] {atom_ret[-1]} atom_nnret[-1] {atom_nnret[-1]}")
+                #convert_mapping(mapping_temp)
                 ##########################################################
                 ##########################################################
-                x = add_sites(x, mapping_temp)
-                g = create_graph_object(x, edge_index, edge_attr)
-                if torch.cuda.is_available():
-                    gpu1 = torch.device("cuda:0")
-                    model = model.to(gpu1)
-                    #print("type g", type(g))
-                    g = g.to(gpu1)
-                else:
-                    model = model.to(map_location)
-                    g = g.to(map_location)
-                # infer!
-                smap_temp = model(g).detach().item()
+                smap_temp = perform_inference(x,edge_index,edge_attr,mapping_temp,model)
                 if smap_temp > max_norm or smap_temp < min_norm:
                     print(f'out of the box S_map_temp is {smap_temp}')
-                    #convert_mapping(mapping_temp)
                 tot_knt += 1
-                #print(f'S_map is {smap_temp}')
                 ##########################################################
                 ##########################################################
                 if (smap_temp>min_norm)and(smap_temp<max_norm): #the proposed mapping is in the window, run the acceptance
@@ -526,6 +489,11 @@ elif task == "run":
                         smap=smap_temp 
                         mapping[at1]=0
                         mapping[at2]=1
+                        # updating atom_ret,atom_nnret
+                        atom_ret[-1] = at2
+                        atom_nnret[-1] = at1
+                        #print("atom_ret", str(atom_ret))
+                        #print("atom_nnret", str(atom_nnret))
                         if visited_bins[ibin]==0:
                            print("new visited_bin %d with norm %lf"%(ibin,delx*ibin))
                            print(f"visitor smap {smap}")
@@ -568,53 +536,34 @@ elif task == "run":
                 int((smap-min_norm)/1.0)
                 print("saving mapping in savebin", savebin)
                 convert_mapping(mapping)
-                append_mapping(mapping,smap,savebin,min_explorable,del_smap) # 1.0 is the delnorm, so that we have 19 bins for the mapping
+                append_mapping(mapping,smap,savebin,min_norm,del_smap) # 1.0 is the delnorm, so that we have 19 bins for the mapping
             #Everything now is checked provided that this is not a newly visited bin                
             #a bin has not been visited, restart the histogram
             if (visited==False):
                 check_flat=True
                 break
-            #all bin have bin visited check histogram depening on the number of moves
+            #all bin have bin visited check histogram depending on the number of moves
             elif(check>=check_histo)and(visited==True)and(mc_move>=min_mc_moves):
-                print("Checking histo of f = %.10lf, MC_move = %d, checkbox = %d"%(logf,mc_move,check))
-                outhist=open("Histograms_checks_4ake/Histo_%.10lf_%d_%d.dat"%(logf,mc_move,check),"w")
-                for wbin in range(nbins):
-                    xc=delx*wbin
-                    outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
-                outhist.close()
+                print_final_histogram(histo,log_dofstates,logf,nbins,delx,wbin,count,check,final="no")
                 #reset the check flag
                 check=0
-                count_bins=0.
-                avg_hist=0.
-                for bins in range(nbins):
-                    if visited_bins[bins]==1:
-                       avg_hist+=histo[bins]
-                       count_bins+=1
-                avg_hist=avg_hist/count_bins
-                
-                print("Average of histogram: %lf, on a total number of bins= %d"%(avg_hist,count_bins))
-    
+                # compute_histo_average(visited_bins)
+                count_bins = np.nonzero(visited_bins)
+                avg_hist = np.mean(histo[count_bins])
+                print("Average of histogram: %lf, on a total number of bins= %d"%(avg_hist,len(count_bins)))
                 #For an histogram to be flat, the logdos of all visited states must be higher than pflat the average.
-    
                 checkall=True
                 for bins in range(nbins):
                     if visited_bins[bins]==1:
                         if (histo[bins]<pflat*avg_hist)or(histo[bins]>((2.-pflat)*avg_hist)):
                             checkall=False
                             break
-    
                 if (checkall==False):
                     print("Flatness condition not satisfied: some bins have a number of counts smaller than pflat*average = %lf or higher than (2-pflat)*average = %lf"%(pflat*avg_hist,(2.-pflat)*avg_hist))
                 else:
-                    print("FLATNESS CONDITION SATISFIED")       
-                    print("log_dofstates when FLATNESS CONDITION SATISFIED", log_dofstates)
+                    print("FLATNESS CONDITION SATISFIED")
+                    print_final_histogram(histo,log_dofstates,logf,nbins,delx,wbin,count,check,final="yes")       
+                    #the histogram is flat: update the logf and check_flat
                     check_flat=True
-                    print("Iteration with factor %.10lf completed, histogram flattened"%logf,dt.datetime.now())
-                    outhist=open("Histograms_final_4ake/Histo_final_f_%.10lf.dat"%logf,"w")
-                    for wbin in range(nbins):
-                        xc=delx*wbin
-                        outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
-                    #the histogram is flat: update the logf
                     logf=logf/2.
-    
     print ("Final time: ", dt.datetime.now())    
