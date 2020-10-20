@@ -55,33 +55,6 @@ else:
     map_location='cpu'
 print("map_location" , map_location)
 
-# Define the Model
-
-def convert_mapping(mapping):
-    print("conv_mapping: ",torch.nonzero(mapping, as_tuple=True))
-
-def append_mapping(mapping,smap_mapping,savebin,min_norm_visited,delnorm):
-    #routine that appends mapping to a file/creates file if empty
-    filename = "Mappings_norm_%lf-%lf.dat"%(min_norm_visited + delnorm*savebin, min_norm_visited + delnorm*(savebin+1))
-    # check for existence
-    if filename in os.listdir("./Mappings_saved_4ake/"):
-        filename = os.path.join("./Mappings_saved_4ake/",filename)
-        wfile=open(filename,"a")
-    else:
-        print("filename", filename," not present, creating file...")
-        filename = os.path.join("./Mappings_saved_4ake/",filename)
-        wfile=open(filename,"w")
-    # check mapping
-    correct_map = numpy.count_nonzero(mapping == 1)
-    if correct_map != 214:
-      raise Exception("mapping", mapping, "has N != 214")
-    # writing file
-    for k in range(len(mapping)):
-        if mapping[k] == 1:
-            wfile.write("%d "%k)
-    wfile.write(" - Smap: %lf\n"%smap_mapping)
-    wfile.close()
-
 class TrentoConv(MessagePassing):
     def __init__(self, nn, aggregation='mean', eps=0.1, **kwargs):
         super(TrentoConv, self).__init__(aggr=aggregation, **kwargs)
@@ -228,152 +201,45 @@ def create_graph_object(x, edge_index, edge_attr):
 
 # main body
 
+#################################################
+# LOADING PARAMETERS AND GRAPH
+#################################################
+
 parameters = system_parameters_setup(sys.argv[1])
 print(parameters)
 dataset = parameters["dataset"] # '6d93' or '4ake'
 task = parameters["task"] # 'test' for testing, 'bench' for benchmarking, 'run' for production runs
+n_heavy = int(parameters["n_heavy"])
+n_rand = int(parameters["n_rand"])
+check_histo=int(parameters["check_histo"])
+min_mc_moves=int(parameters["min_mc_moves"])
+ncg=int(parameters["ncg"])
+max_norm = float(parameters["max_norm"])
+min_norm = float(parameters["min_norm"])
+delx= float(parameters["delx"]) # bin width
+del_smap = float(parameters["del_smap"]) # delta parameter for saving mappings
+logf=float(parameters["logf"]) #initial value of f factor for wang langau implementation ---> here it does not change!
+logf_final=float(parameters["logf_final"]) # final value of f for stopping wang landau algorithm
+pflat=float(parameters["pflat"]) #flatness criterion
 
 # load graph 
-
 with open(f'./graph_{dataset}.pkl', 'rb') as f:
     x, edge_index, edge_attr = pickle.load(f)
 x, edge_index, edge_attr = torch.tensor(x), torch.tensor(edge_index, dtype=torch.long), torch.tensor(edge_attr)
-
 # load checkpoint
 model = load_checkpoint(root_folder='.', dataset=dataset)
-
-# Create input graph
-
-#for i in range(len(opt_maps)):
-#    first_opt_binary = torch.zeros(1656, dtype=torch.float)
-#    for el in opt_maps[i]:
-#      first_opt_binary[el] = 1.0
-#    x = add_sites(x, first_opt_binary)
-#    g = create_graph_object(x, edge_index, edge_attr)
-#    model = model.to('cpu')
-#    g = g.to('cpu')
-#    
-#    #K = 0.0013363595837560089  # Used to conform with previous work from Giulini et al.
-#    smap = model(g).detach().item()
-#    print(f'S_map is {smap}')
 
 ###########################################
 
 print("starting wang landau exploration")
-
-n_heavy = int(parameters["n_heavy"])
-n_rand = int(parameters["n_rand"])
-at_nr=np.zeros(shape=(n_heavy), dtype=int)
-#
-if task != "test":
-    # no testing. build directories
-    os.mkdir(f'Histograms_checks_{dataset}')
-    os.mkdir(f'Histograms_final_{dataset}')
-    #os.mkdir(f'Min_maps_checks_{dataset}')
-    #os.mkdir(f'Min_maps_final_{dataset}')
-    #os.mkdir(f'Max_maps_checks_{dataset}')
-    #os.mkdir(f'Max_maps_final_{dataset}')
-#
-check_histo=int(parameters["check_histo"])
-min_mc_moves=int(parameters["min_mc_moves"])
-#
-mapping = torch.zeros(n_heavy, dtype=torch.int)
-mapping_prime = torch.zeros(n_heavy, dtype=torch.int)
-#
-## cgsites
-ncg=int(parameters["ncg"])
-print(f"Number of CG sites = {ncg}")
-# mapping
-
-rd_sel = np.random.choice(np.arange(0,n_heavy), size=ncg, replace=False)
-#print(rd_sel)
-#print("shape rd_sel", rd_sel.shape)
-for el in rd_sel:
-    mapping[el] = 1
-
-print("first mapping")
-convert_mapping(mapping)
-# atom_ret and atom_nnret
-atom_ret = np.nonzero(mapping)
-print("shape atom_ret", atom_ret.shape)
-#print(atom_ret)
-atom_nnret = np.nonzero(mapping == 0)
-print("shape atom_nnret", atom_nnret.shape)
-
-max_norm = float(parameters["max_norm"])
-#ref_maxnorm = 108.5 # highest value in ref histogram: print all values higher than this or lower than minnorm
-min_norm = float(parameters["min_norm"])
-delx= float(parameters["delx"]) # bin width
-del_smap = float(parameters["del_smap"]) # delta parameter for saving mappings
-nbins=int((max_norm)/delx)+1
-print("maxnorm - minnorm - delx - nbins", max_norm, min_norm,delx,nbins)
-#Counter to start saving maps when all bins have been visited 
-MC_COUNT_GIU=0
-#Variable saying every how many MC sweeps mappings have to be saved
-MC_sweep_save=1
-# array containing the range of visited bins that are taken as reference
-ref_visited_bins=np.zeros(shape=(nbins),dtype=int)
-#
-#histogram for the wang-landau sampling
-histo=np.zeros(shape=(nbins))
-#log of density of states for the wang-landau sampling
-log_dofstates=np.zeros(shape=(nbins))
-#initial value of f factor for wang langau implementation ---> here it does not change!
-logf=float(parameters["logf"])
-logf_final=float(parameters["logf_final"])
-#
-##save first mapping norm and associated bin
-##mapping_prime=metric_matrix.dot(mapping)
-##norm_mapping=numpy.dot(mapping,mapping_prime)/neighat
-#
-###########################################################
-###########################################################
-x = add_sites(x,  mapping)
-g = create_graph_object(x, edge_index, edge_attr)
-# model is loaded to selected locationù
-if torch.cuda.is_available():
-    gpu1 = torch.device("cuda:0")
-    model = model.to(gpu1)
-    print("type g", type(g))
-    g = g.to(gpu1)
-else:
-    model = model.to(map_location)
-    g = g.to(map_location)
-## infer!
-smap = model(g).detach().item()
-print(f'starting S_map is {smap}')
-###########################################################
-###########################################################
-ibin=int(smap/delx)
-# creating a temporary mapping by cloning torch mapping
-mapping_temp = mapping.clone()
-## THEORETICALLY WE SHOULD START OUR SIM FROM THE CENTER OF THE INTERVAL...WHO CARES??
-##flatness criterion
-pflat=float(parameters["pflat"])
-#this is the first time you run it
-#first=True
-#
-##Array counting if a certain bin has been visited on the fly during the wang-landau, cheched against the reference
-visited_bins=np.zeros(shape=(nbins),dtype=int)
-#
-##saying that the first guy was visited
-log_dofstates[ibin]+=logf
-visited_bins[ibin]=1
-#this tells us when a new bin is visited
-visited=True
-#this tells us when all bins with respect to the reference have been visited to start saving the mappings
-visited_all=False
-#Check that the total number of mappings saved is the right one, in that case stop
-all_maps_saved=False
-print (f"Beginning Wang-Landau mapping space exploration to save mappings: {dt.datetime.now()}")
-#
-tot_knt = 0
 
 """ 
 functions for wang landau:
     - make_a_move
     - perform_inference
     - print_final_histogram
+    - convert_mapping
+    - append_mapping
 """
 
 def make_a_move(torch_mapping, np_retained, np_not_retained):
@@ -409,7 +275,7 @@ def perform_inference(x,edge_index,edge_attr, mapping_temp, model):
     smap_temp = model(g).detach().item()
     return smap_temp
 
-def print_final_histogram(histo,log_dofstates,logf,nbins,delx,count,final):
+def print_final_histogram(histo,log_dofstates,logf,nbins,delx,count,check,final):
     """
     printing intermediate and final histograms
     """
@@ -425,8 +291,110 @@ def print_final_histogram(histo,log_dofstates,logf,nbins,delx,count,final):
         outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
     outhist.close()
 
-if task == "runvi":
-##while all_maps_saved==False:
+def convert_mapping(mapping):
+    print("conv_mapping: ",torch.nonzero(mapping, as_tuple=True))
+
+def append_mapping(mapping,smap_mapping,savebin,min_norm_visited,delnorm):
+    """
+    routine that appends mapping to a file/creates file if empty
+    """
+    filename = "Mappings_norm_%lf-%lf.dat"%(min_norm_visited + delnorm*savebin, min_norm_visited + delnorm*(savebin+1))
+    # check for existence
+    if filename in os.listdir(f"./Mappings_saved_{dataset}/"):
+        filename = os.path.join(f"./Mappings_saved_{dataset}/",filename)
+        wfile=open(filename,"a")
+    else:
+        print("filename", filename," not present, creating file...")
+        filename = os.path.join(f"./Mappings_saved_{dataset}/",filename)
+        wfile=open(filename,"w")
+    # check mapping
+    correct_map = numpy.count_nonzero(mapping == 1)
+    if correct_map != ncg:
+      raise Exception(f"mapping {mapping} has N != {ncg}")
+    # writing file
+    for k in range(len(mapping)):
+        if mapping[k] == 1:
+            wfile.write("%d "%k)
+    wfile.write(" - Smap: %lf\n"%smap_mapping)
+    wfile.close()
+
+#################################################
+# WANG LANDAU SETUP
+#################################################
+
+at_nr=np.zeros(shape=(n_heavy), dtype=int)
+if task != "test":
+    # no testing. build directories
+    os.mkdir(f'Histograms_checks_{dataset}')
+    os.mkdir(f'Histograms_final_{dataset}')
+    os.mkdir(f'Mappings_saved_{dataset}')
+# define tensors
+mapping = torch.zeros(n_heavy, dtype=torch.int)
+mapping_prime = torch.zeros(n_heavy, dtype=torch.int)
+# define initial mapping
+rd_sel = np.random.choice(np.arange(0,n_heavy), size=ncg, replace=False)
+for el in rd_sel:
+    mapping[el] = 1
+print("first mapping")
+convert_mapping(mapping)
+# numpy arrays for retained and not retained atoms: atom_ret and atom_nnret
+atom_ret = np.nonzero(mapping)
+print("shape atom_ret", atom_ret.shape)
+atom_nnret = np.nonzero(mapping == 0)
+print("shape atom_nnret", atom_nnret.shape)
+# binning
+nbins=int((max_norm)/delx)+1
+print("maxnorm - minnorm - delx - nbins", max_norm, min_norm,delx,nbins)
+#histogram for the wang-landau sampling
+histo=np.zeros(shape=(nbins))
+#log of density of states for the wang-landau sampling
+log_dofstates=np.zeros(shape=(nbins))
+###########################################################
+# first inference
+smap = perform_inference(x,edge_index,edge_attr,mapping,model)
+#x = add_sites(x,  mapping)
+#g = create_graph_object(x, edge_index, edge_attr)
+## model is loaded to selected locationù
+#if torch.cuda.is_available():
+#    gpu1 = torch.device("cuda:0")
+#    model = model.to(gpu1)
+#    print("type g", type(g))
+#    g = g.to(gpu1)
+#else:
+#    model = model.to(map_location)
+#    g = g.to(map_location)
+### infer!
+#smap = model(g).detach().item()
+print(f'starting S_map is {smap}')
+###########################################################
+###########################################################
+# start bin
+ibin=int(smap/delx)
+# creating a temporary mapping by cloning torch mapping
+mapping_temp = mapping.clone()
+##Array counting if a certain bin has been visited on the fly during the wang-landau, cheched against the reference
+visited_bins=np.zeros(shape=(nbins),dtype=int)
+##saying that the first guy was visited
+log_dofstates[ibin]+=logf
+visited_bins[ibin]=1
+#this tells us when a new bin is visited
+visited=True
+#this tells us when all bins with respect to the reference have been visited to start saving the mappings
+visited_all=False
+#Check that the total number of mappings saved is the right one, in that case stop
+all_maps_saved=False
+print (f"Beginning Wang-Landau mapping space exploration to save mappings: {dt.datetime.now()}")
+# counter on the total number of generated mappings
+tot_knt = 0
+
+"""
+three different tasks:
+- test
+- bench
+- run
+"""
+
+if task == "test":
     print(task)
 elif task == "bench":
     # benchmarking
@@ -440,7 +408,7 @@ elif task == "bench":
     t_end = dt.datetime.now() - t_start
     print(f"time required to do inference on {bench_steps} = {t_end}")
 
-elif task == "test":
+elif task == "run":
     #for n in range(200):     
     #    print("n = ",n)       
     while logf>=logf_final:
@@ -516,7 +484,7 @@ elif task == "test":
                     else:
                        log_dofstates[ibin]+=logf 
                 # condition on min_explorable and max_explorable
-                else:    #BINDER STUFF: the proposed mapping is outside the window, so reject the move and update histo and dos of the old mapping
+                else:    #Binder condition: the proposed mapping is outside the window, so reject the move and update histo and dos of the old mapping
                     print("out of bounds smap, rejecting and updating current bin")
                     mapping_temp[at1]=1
                     mapping_temp[at2]=0
@@ -530,13 +498,13 @@ elif task == "test":
                 print("MCmove: %d"%(mc_move))   
                 print("log_dofstates", log_dofstates) 
             # save mapping if logf factor is already < 0.5
-            if logf < 0.5:
+            #if logf < 0.5:
+            if logf < 2: # to debug
                 print("saving mapping")
-                #savebin = int((smap-min_explorable)/0.775)
-                int((smap-min_norm)/1.0)
+                savebin = int((smap-min_norm)/del_smap)
                 print("saving mapping in savebin", savebin)
                 convert_mapping(mapping)
-                append_mapping(mapping,smap,savebin,min_norm,del_smap) # 1.0 is the delnorm, so that we have 19 bins for the mapping
+                append_mapping(mapping,smap,savebin,min_norm,del_smap) 
             #Everything now is checked provided that this is not a newly visited bin                
             #a bin has not been visited, restart the histogram
             if (visited==False):
