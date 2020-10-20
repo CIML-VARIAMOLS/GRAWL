@@ -409,7 +409,7 @@ def perform_inference(x,edge_index,edge_attr, mapping_temp, model):
     smap_temp = model(g).detach().item()
     return smap_temp
 
-def print_final_histogram(histo,log_dofstates,logf,nbins,delx,wbin,count,final):
+def print_final_histogram(histo,log_dofstates,logf,nbins,delx,count,final):
     """
     printing intermediate and final histograms
     """
@@ -544,7 +544,7 @@ elif task == "test":
                 break
             #all bin have bin visited check histogram depending on the number of moves
             elif(check>=check_histo)and(visited==True)and(mc_move>=min_mc_moves):
-                print_final_histogram(histo,log_dofstates,logf,nbins,delx,wbin,count,check,final="no")
+                print_final_histogram(histo,log_dofstates,logf,nbins,delx,count,check,final="no")
                 #reset the check flag
                 check=0
                 # compute_histo_average(visited_bins)
@@ -562,7 +562,7 @@ elif task == "test":
                     print("Flatness condition not satisfied: some bins have a number of counts smaller than pflat*average = %lf or higher than (2-pflat)*average = %lf"%(pflat*avg_hist,(2.-pflat)*avg_hist))
                 else:
                     print("FLATNESS CONDITION SATISFIED")
-                    print_final_histogram(histo,log_dofstates,logf,nbins,delx,wbin,count,check,final="yes")       
+                    print_final_histogram(histo,log_dofstates,logf,nbins,delx,count,check,final="yes")       
                     #the histogram is flat: update the logf and check_flat
                     check_flat=True
                     logf=logf/2.
