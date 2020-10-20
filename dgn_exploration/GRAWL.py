@@ -280,12 +280,12 @@ def print_final_histogram(histo,log_dofstates,logf,nbins,delx,count,check,final)
     printing intermediate and final histograms
     """
     if final == "yes":
-        print("log_dofstates when FLATNESS CONDITION SATISFIED", log_dofstates)
+        print(f"log_dofstates when FLATNESS CONDITION SATISFIED {log_dofstates}")
         print("Iteration with factor %.10lf completed, histogram flattened"%logf,dt.datetime.now())
-        outhist=open("Histograms_final_4ake/Histo_final_f_%.10lf.dat"%logf,"w")
+        outhist=open(f"Histograms_final_{dataset}/Histo_final_f_%.10lf.dat"%logf,"w")
     else:
-        print("Checking histo of f = %.10lf, MC_move = %d, checkbox = %d"%(logf,mc_move,check))
-        outhist=open("Histograms_checks_4ake/Histo_%.10lf_%d_%d.dat"%(logf,mc_move,check),"w")
+        print("Checking histo of f = %.10lf, mc_move = %d, checkbox = %d"%(logf,mc_move,check))
+        outhist=open(f"Histograms_checks_{dataset}/Histo_%.10lf_%d_%d.dat"%(logf,mc_move,check),"w")
     for wbin in range(nbins):
         xc=delx*wbin
         outhist.write("%lf %lf %lf\n"%(xc,histo[wbin]/count,log_dofstates[wbin]))
@@ -308,7 +308,7 @@ def append_mapping(mapping,smap_mapping,savebin,min_norm_visited,delnorm):
         filename = os.path.join(f"./Mappings_saved_{dataset}/",filename)
         wfile=open(filename,"w")
     # check mapping
-    correct_map = numpy.count_nonzero(mapping == 1)
+    correct_map = np.count_nonzero(mapping == 1)
     if correct_map != ncg:
       raise Exception(f"mapping {mapping} has N != {ncg}")
     # writing file
@@ -351,20 +351,8 @@ histo=np.zeros(shape=(nbins))
 log_dofstates=np.zeros(shape=(nbins))
 ###########################################################
 # first inference
+###########################################################
 smap = perform_inference(x,edge_index,edge_attr,mapping,model)
-#x = add_sites(x,  mapping)
-#g = create_graph_object(x, edge_index, edge_attr)
-## model is loaded to selected locationù
-#if torch.cuda.is_available():
-#    gpu1 = torch.device("cuda:0")
-#    model = model.to(gpu1)
-#    print("type g", type(g))
-#    g = g.to(gpu1)
-#else:
-#    model = model.to(map_location)
-#    g = g.to(map_location)
-### infer!
-#smap = model(g).detach().item()
 print(f'starting S_map is {smap}')
 ###########################################################
 ###########################################################
@@ -421,8 +409,8 @@ elif task == "run":
         check_flat=False
         #reset histogram
         histo=np.zeros(shape=(nbins))
-        #while check_flat==False:
-        for s in range(n_rand):
+        while check_flat==False:
+        #for s in range(n_rand):
             print("count ", count)
             print("tot_knt", tot_knt)
             # sweep of n_rand steps
@@ -443,8 +431,8 @@ elif task == "run":
                 ##########################################################
                 ##########################################################
                 smap_temp = perform_inference(x,edge_index,edge_attr,mapping_temp,model)
-                if smap_temp > max_norm or smap_temp < min_norm:
-                    print(f'out of the box S_map_temp is {smap_temp}')
+                #if smap_temp > max_norm or smap_temp < min_norm:
+                #    print(f'out of the box S_map_temp is {smap_temp}')
                 tot_knt += 1
                 ##########################################################
                 ##########################################################
@@ -485,7 +473,7 @@ elif task == "run":
                        log_dofstates[ibin]+=logf 
                 # condition on min_explorable and max_explorable
                 else:    #Binder condition: the proposed mapping is outside the window, so reject the move and update histo and dos of the old mapping
-                    print("out of bounds smap, rejecting and updating current bin")
+                    #print("out of bounds smap, rejecting and updating current bin")
                     mapping_temp[at1]=1
                     mapping_temp[at2]=0
                     histo[ibin]+=1
@@ -495,11 +483,10 @@ elif task == "run":
             mc_move+=1
             check+=1
             if mc_move%10==0: 
-                print("MCmove: %d"%(mc_move))   
+                print("mc_move: %d"%(mc_move))   
                 print("log_dofstates", log_dofstates) 
             # save mapping if logf factor is already < 0.5
-            #if logf < 0.5:
-            if logf < 2: # to debug
+            if logf < 0.5:
                 print("saving mapping")
                 savebin = int((smap-min_norm)/del_smap)
                 print("saving mapping in savebin", savebin)
