@@ -360,16 +360,16 @@ print(f'starting S_map is {smap}')
 ibin=int(smap/delx)
 # creating a temporary mapping by cloning torch mapping
 mapping_temp = mapping.clone()
-##Array counting if a certain bin has been visited on the fly during the wang-landau, cheched against the reference
+# Array counting if a certain bin has been visited on the fly during the wang-landau, cheched against the reference
 visited_bins=np.zeros(shape=(nbins),dtype=int)
-##saying that the first guy was visited
+# saying that the first bin was visited
 log_dofstates[ibin]+=logf
 visited_bins[ibin]=1
-#this tells us when a new bin is visited
+# this tells us when a new bin is visited
 visited=True
-#this tells us when all bins with respect to the reference have been visited to start saving the mappings
+# this tells us when all bins with respect to the reference have been visited in order to start saving the mappings
 visited_all=False
-#Check that the total number of mappings saved is the right one, in that case stop
+# Check that the total number of mappings saved is the right one, in that case stop
 all_maps_saved=False
 print (f"Beginning Wang-Landau mapping space exploration to save mappings: {dt.datetime.now()}")
 # counter on the total number of generated mappings
@@ -394,13 +394,11 @@ elif task == "bench":
         smap_bench = perform_inference(x,edge_index,edge_attr, mapping, model)
         print(f"smap_bench[{s}] = {smap_bench}")
     t_end = dt.datetime.now() - t_start
-    print(f"time required to do inference on {bench_steps} = {t_end}")
+    print(f"time required to do inference on {bench_steps} steps = {t_end}")
 
-elif task == "run":
-    #for n in range(200):     
-    #    print("n = ",n)       
+elif task == "run":   
     while logf>=logf_final:
-    ##reset all counters
+    # reset all counters
         if (visited==True):
             print("Iteration of Wang-Landau with f=%.10lf"%logf)
         count=0
