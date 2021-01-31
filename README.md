@@ -28,7 +28,7 @@ This folder contains the trained neural network and the python script to perform
 
 In order to use them:
 
-1. setup a conda environment. There are two scripts (install_cpu.sh and install_gpu.sh) that set up a conda environment depending on the device used
+1. setup a conda environment. There are two scripts (install_cpu.sh and install_gpu.sh) that set up a conda environment depending on the device used.
 
 	**Usage**: running *./install_cpu.sh* will create GRAWL, a cpu-based environment, while running *./install_gpu.sh* will create the GRAWL_gpu environment, with exactly the same packages. GRAWL_gpu is created (and tested) with compatibility with cuda 10.0, but the version of cuda can be easily modified inside the script. 
 
