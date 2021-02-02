@@ -26,14 +26,26 @@ A folder that contains five files:
 
 This folder contains the trained neural network and the python script to perform Wang Landau exploration in the space of available mappings.
 
-In order to use them:
+## 1. setup a conda environment
 
-1. setup a conda environment. There are two scripts (install_cpu.sh and install_gpu.sh) that set up a conda environment depending on the device used.
 
-	**Usage**: running *./install_cpu.sh* will create GRAWL, a cpu-based environment, while running *./install_gpu.sh* will create the GRAWL_gpu environment, with exactly the same packages. GRAWL_gpu is created (and tested) with compatibility with cuda 10.0, but the version of cuda can be easily modified inside the script. 
+1. create the GRAWL (GRAph neural network Wang Landau) conda environment:
 
-2. run the script: the two files "parameters.dat" are already present in the folder. The name of the parameter file should be the first and unique argument given to the script:
+	**conda create -n GRAWL python=3.7** (conda create -n GRAWL_gpu python=3.7)
 	
-	**python3 GRAWL.py parameters_4ake.dat**
+2. activate the desired environment. This may vary as it depends on how your shell has been configured with conda (see [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment))
 	
-	**python3 GRAWL.py parameters_6d93.dat**
+	**conda activate GRAWL** (conda activate GRAWL_gpu)
+	
+3. set up the environment
+	
+	**./install_cpu.sh** (./install_gpu.sh)
+
+
+## 2. running the Wang Landau exploration of the space
+
+The python script *GRAWL.py* requires a parameter file in input. Two files "parameters.dat" are already present in the folder.
+	
+**python3 GRAWL.py parameters_4ake.dat**
+	
+**python3 GRAWL.py parameters_6d93.dat**
