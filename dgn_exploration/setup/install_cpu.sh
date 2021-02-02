@@ -1,6 +1,6 @@
 #!/bin/bash
-conda create -n GRAWL python=3.7
-conda activate GRAWL
+#conda create -n GRAWL python=3.7
+#conda activate GRAWL
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
     pip install torch==1.4.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
