@@ -1,0 +1,14 @@
+dataset 6d93
+task run
+ncg 31
+check_histo 100
+min_mc_moves 1000
+n_heavy 230
+n_rand 230
+max_norm 22.4
+min_norm 10.0
+delx 0.2
+del_smap 0.775
+logf 1
+logf_final 0.000001
+pflat 0.80

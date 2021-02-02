@@ -1,0 +1,14 @@
+dataset 4ake
+task run
+ncg 214
+check_histo 100
+min_mc_moves 100
+n_heavy 1656
+n_rand 1656
+max_norm 108.6
+min_norm 89.4
+delx 0.2
+del_smap 1.0
+logf 1
+logf_final 0.000001
+pflat 0.80
