@@ -5,3 +5,4 @@ pipelines:
     - step:
         script:
           - git push --mirror git@github.com:MarkDownThere/GRAWL.git
+          - git push --mirror git@github.com:raffuzzo/GRAWL.git
