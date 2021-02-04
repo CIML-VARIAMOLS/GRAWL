@@ -29,7 +29,7 @@ This folder contains the trained neural network and the python script to perform
 ## 1. setup a conda environment
 
 
-1. create the GRAWL (GRAph neural network Wang Landau) conda environment:
+1. create the GRAWL (deep GRAph network Wang Landau) conda environment:
 
 	**conda create -n GRAWL python=3.7** (conda create -n GRAWL_gpu python=3.7)
 	
