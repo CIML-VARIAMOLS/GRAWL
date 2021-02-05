@@ -4,4 +4,4 @@ pipelines:
   default:
     - step:
         script:
-          - git push --mirror git@github.com:potestiolab/GRAWL.git
+          - git push --mirror git@github.com:CIML-VARIAMOLS/GRAWL.git
