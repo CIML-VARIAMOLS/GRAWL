@@ -1,11 +1,23 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+This is the official repository of the paper ["A deep graph network-enhanced sampling approach to efficiently explore the space of reduced representations of proteins"](https://www.frontiersin.org/articles/10.3389/fmolb.2021.637396/abstract), a joint collaboration between the Computational Intelligence and Machine Learning (CIML) group from the University of Pisa and the VARIAMOLS group from the University of Trento.
 
-### What is this repository for? ###
+This repo allows to reproduce the main result of the paper (Wang Landau exploration of the space of CG mappings) and use the trained model for inference.
 
-* dataset used in the article "A deep graph network-enhanced sampling approach to efficiently explore the space of reduced representations of proteins"
-* the setup scripts for the Wang Landau exploration of the space of CG mappings 
+If you use this code, please remember to cite the paper:
+
+
+    @article{ciml-variamols-2021,
+      title={A deep graph network-enhanced sampling approach to efficiently explore the space of reduced representations of proteins},
+      author={Errica, Federico and Giulini, Marco and Bacciu, Davide and Menichetti, Roberto and Micheli, Alessio and Potestio, Raffaello},
+      journal={Frontiers in Molecular Biosciences},
+      volume={8},
+      pages={136},
+      year={2021},
+      publisher={Frontiers}
+    }
+
+We have also released the data used for this study.
 
 ## folders
 
